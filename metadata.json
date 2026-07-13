@@ -1,0 +1,6 @@
+{
+  "name": "Weather Intelligence App",
+  "description": "A highly polished, responsive weather dashboard featuring geocoding search, a 7-day forecast with temperature trends, and a rules-based decision intelligence engine for activity planning.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
