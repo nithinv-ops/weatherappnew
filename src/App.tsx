@@ -19,7 +19,7 @@ const DEFAULT_CITY: GeocodingResult = {
 
 const PRESET_CITIES: GeocodingResult[] = [
   { id: 1850147, name: 'Tokyo', latitude: 35.6895, longitude: 139.6917, timezone: 'Asia/Tokyo', country: 'Japan', country_code: 'JP' },
-  { id: 5128581, name: 'New York', latitude: 40.7143, longitude: -74.006, timezone: 'America/New York', country: 'United States', country_code: 'US' },
+  { id: 5128581, name: 'New York', latitude: 40.7143, longitude: -74.006, timezone: 'America/New_York', country: 'United States', country_code: 'US' },
   { id: 2643743, name: 'London', latitude: 51.5085, longitude: -0.1257, timezone: 'Europe/London', country: 'United Kingdom', country_code: 'GB' },
   { id: 360630, name: 'Cairo', latitude: 30.0626, longitude: 31.2497, timezone: 'Africa/Cairo', country: 'Egypt', country_code: 'EG' },
   { id: 3413829, name: 'Reykjavik', latitude: 64.1355, longitude: -21.8954, timezone: 'Atlantic/Reykjavik', country: 'Iceland', country_code: 'IS' },
@@ -80,11 +80,24 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.latitude}&longitude=${city.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,showers,snowfall,weather_code,wind_speed_10m,wind_direction_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max&timezone=${encodeURIComponent(
-        city.timezone
+      // Normalize timezone: handle empty values, spaces, or invalid placeholders
+      const normalizedTimezone = city.timezone && city.timezone !== 'undefined'
+        ? city.timezone.trim().replace(/\s+/g, '_')
+        : 'auto';
+
+      let url = `https://api.open-meteo.com/v1/forecast?latitude=${city.latitude}&longitude=${city.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,showers,snowfall,weather_code,wind_speed_10m,wind_direction_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max&timezone=${encodeURIComponent(
+        normalizedTimezone
       )}`;
       
-      const response = await fetch(url);
+      let response = await fetch(url);
+      
+      // Fallback: If the request fails (e.g. because of an invalid timezone name), retry with auto-timezone
+      if (!response.ok && normalizedTimezone !== 'auto') {
+        console.warn(`Weather query with timezone '${normalizedTimezone}' failed. Retrying with 'auto' timezone...`);
+        url = `https://api.open-meteo.com/v1/forecast?latitude=${city.latitude}&longitude=${city.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,showers,snowfall,weather_code,wind_speed_10m,wind_direction_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max&timezone=auto`;
+        response = await fetch(url);
+      }
+
       if (!response.ok) {
         throw new Error('Search Exception: Weather forecasting service failed to respond.');
       }
